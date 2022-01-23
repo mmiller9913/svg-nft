@@ -63,7 +63,8 @@ module.exports = async({
     //create an NFT by calling a random number 
     const RandomSVGContract = await hre.ethers.getContractFactory('RandomSVG'); //THINK need to do this to get the abi
     const randomSVG = new ethers.Contract(RandomSVG.address, RandomSVGContract.interface, signer);
-    let creation_txn = await randomSVG.create({ gasLimit: 300000, value: '10000000000000000' });
+    // let creation_txn = await randomSVG.create({ gasLimit: 300000, value: '10000000000000000' }); //use if NFTs cost something
+    let creation_txn = await randomSVG.create({ gasLimit: 300000 });
     let receipt = await creation_txn.wait();
     //from the receipt's indexed events, we can get the tokenId 
     // console.log(receipt.events);
@@ -72,7 +73,7 @@ module.exports = async({
     log(`You made your NFT! This is token number ${tokenId.toString()}`);
     log(`Let's wait for the Chainlink node to respond...`)
     if(chainId != 31337) { //not on local chain
-        const waitTime = 180000; //ms to wait
+        const waitTime = 60000; //ms to wait
         await new Promise(r => setTimeout(r, waitTime)); 
         log('Time to finish the mint...');
         let finish_tx = await randomSVG.finishMint(tokenId, { gasLimit: 2000000 });

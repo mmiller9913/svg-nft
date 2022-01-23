@@ -15,8 +15,8 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
     bytes32 public keyHash;
     uint256 public fee;
     uint256 public tokenCounter;
-    uint256 public price;
-    address payable public owner;
+    // uint256 public price;
+    // address payable public owner;
 
     //svg params
     uint256 public maxNumberOfPaths;
@@ -46,8 +46,8 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
         fee = _fee;
         keyHash = _keyHash;
         tokenCounter = 0;
-        price = 10000000000000000; //0.01 ETH / MATIC / AVAX
-        owner = payable(msg.sender);
+        // price = 10000000000000000; //0.01 ETH / MATIC / AVAX
+        // owner = payable(msg.sender);
 
         //svg params
         maxNumberOfPaths = 10;
@@ -57,10 +57,10 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
         colors = ["red", "blue", "green", "yellow", "black", "white"];
     }
 
-    function create() public payable returns (bytes32 requestId) {
+    function create() public returns (bytes32 requestId) {
         //making these NFTs cost $$$
         //make sure function is payable
-        require(msg.value >= price, "Need to send more ETH");
+        // require(msg.value >= price, "Need to send more ETH");
 
         //get a random number using chainlink VRF: https://docs.chain.link/docs/get-a-random-number/
         //by returning requestId in function arg, same as initializing requestId variable
@@ -80,13 +80,14 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
     }
 
     //function to withdraw eth from contract
-    modifier onlyOwner() {
-        require(msg.sender == owner, "You are not the owner of this contract");
-        _;
-    }
-    function withdraw() public payable onlyOwner {
-        owner.transfer(address(this).balance);
-    }
+    //not needed since not setting price for these nfts
+    // modifier onlyOwner() {
+    //     require(msg.sender == owner, "You are not the owner of this contract");
+    //     _;
+    // }
+    // function withdraw() public payable onlyOwner {
+    //     owner.transfer(address(this).balance);
+    // }
 
     //internal b/c only VRF coordinator is calling it
     //get random number back with this function after requesting it w/ requestRandomness() ???
@@ -115,7 +116,7 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
         );
         require(
             tokenIdToRandomNumber[_tokenId] > 0,
-            "You need to wait for the Chainlink VRF to generate a random number"
+            "You need to wait for the Chainljink VRF to generate a random number"
         );
 
         //generate random svg code
@@ -162,7 +163,7 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
 
     function generatePath(uint256 _randomNumber) public view returns (string memory pathSvg) {
         uint256 numberOfPathCommands = (_randomNumber % maxNumberOfPathCommands) + 1; //+1 so there's always at least 1 path;
-        pathSvg = "<path d='";
+        pathSvg = "<path stroke-width='4' d='";
         for(uint i; i < numberOfPathCommands; i++) {
             //use a different number for each path command
             //basically getting a random number from the random number
