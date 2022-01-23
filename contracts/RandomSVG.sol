@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
 //get a random number using chainlink VRF: https://docs.chain.link/docs/get-a-random-number/
+//make sure you run: npm install @chainlink/contracts 
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 
 //for base64 encoding 
@@ -14,6 +15,8 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
     bytes32 public keyHash;
     uint256 public fee;
     uint256 public tokenCounter;
+    uint256 public price;
+    address payable public owner;
 
     //svg params
     uint256 public maxNumberOfPaths;
@@ -43,6 +46,8 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
         fee = _fee;
         keyHash = _keyHash;
         tokenCounter = 0;
+        price = 10000000000000000; //0.01 ETH / MATIC / AVAX
+        owner = payable(msg.sender);
 
         //svg params
         maxNumberOfPaths = 10;
@@ -52,7 +57,11 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
         colors = ["red", "blue", "green", "yellow", "black", "white"];
     }
 
-    function create() public returns (bytes32 requestId) {
+    function create() public payable returns (bytes32 requestId) {
+        //making these NFTs cost $$$
+        //make sure function is payable
+        require(msg.value >= price, "Need to send more ETH");
+
         //get a random number using chainlink VRF: https://docs.chain.link/docs/get-a-random-number/
         //by returning requestId in function arg, same as initializing requestId variable
         //requestRandomness is part of VRFConsumerBase contract -- makes initial request for random number
@@ -68,6 +77,15 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
         //use that random number to generate SVG code
         //base64 encode the SVG code
         //get the tokenURI and mint the nft
+    }
+
+    //function to withdraw eth from contract
+    modifier onlyOwner() {
+        require(msg.sender == owner, "You are not the owner of this contract");
+        _;
+    }
+    function withdraw() public payable onlyOwner {
+        owner.transfer(address(this).balance);
     }
 
     //internal b/c only VRF coordinator is calling it

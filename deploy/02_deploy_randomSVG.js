@@ -1,6 +1,10 @@
 const assert = require('assert');
 let { networkConfig } = require('../helper-hardhat-config')
 
+//NOTE FOR FUTURE MATT
+//When deploying with Rinkeby, the chainLink VRF takes 20+ minutes to returna random number -- based on reading discord comments
+//advised to use kovan: npx hardhat deploy --network kovan --tags rsvg 
+
 //note: gas limits are in wei
 module.exports = async({
     getNamedAccounts,
@@ -59,7 +63,7 @@ module.exports = async({
     //create an NFT by calling a random number 
     const RandomSVGContract = await hre.ethers.getContractFactory('RandomSVG'); //THINK need to do this to get the abi
     const randomSVG = new ethers.Contract(RandomSVG.address, RandomSVGContract.interface, signer);
-    let creation_txn = await randomSVG.create({ gasLimit: 300000 });
+    let creation_txn = await randomSVG.create({ gasLimit: 300000, value: '10000000000000000' });
     let receipt = await creation_txn.wait();
     //from the receipt's indexed events, we can get the tokenId 
     // console.log(receipt.events);
@@ -74,15 +78,6 @@ module.exports = async({
         let finish_tx = await randomSVG.finishMint(tokenId, { gasLimit: 2000000 });
         await finish_tx.wait(1);
         log(`You can view the tokenURI here: ${await randomSVG.tokenURI(tokenId)}`);
-
-        //TRYING THIS...
-        // const finishMint = async() => {
-        //     log('Time to finish the mint...');
-        //     let finish_tx = await randomSVG.finishMint(tokenId, { gasLimit: 2000000 });
-        //     await finish_tx.wait(1);
-        //     log(`You can view the tokenURI here: ${await randomSVG.tokenURI(tokenId)}`);
-        // }
-        // randomSVG.on('CreatedUnfinishedSVG', finishMint);
     } else { //on local chain -- basically pretend to be the chainlink node 
         const VRFCoordinatorMock = await deployments.get('VRFCoordinatorMock');
         vrfCoordinator = await hre.ethers.getContractAt('VRFCoordinatorMock', VRFCoordinatorMock.address, signer);

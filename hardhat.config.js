@@ -30,6 +30,16 @@ module.exports = {
       accounts: [process.env.PRIVATE_KEY],
       saveDeployments: true,
     },
+    kovan: {
+      url: process.env.ALCHEMY_API_URL_KOVAN,
+      accounts: [process.env.PRIVATE_KEY],
+      saveDeployments: true,
+    },
+    polygon: {
+      url: 'https://rpc-mainnet.maticvigil.com/',
+      accounts: [process.env.PRIVATE_KEY],
+      saveDeployments: true,
+    },
   },
   //commented out and added below after we set up the mocks
   // solidity: "0.8.0",
