@@ -4,15 +4,14 @@ pragma solidity ^0.8.0;
 // NFT contract to inherit from.
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
-//get a random number using chainlink VRF: https://docs.chain.link/docs/get-a-random-number/
-import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
-
-//for base64 encoding 
+//for base64 encoding
+//make sure you run npm install base64-sol
 import "base64-sol/base64.sol";
 
-contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
-    bytes32 public keyHash;
-    uint256 public fee;
+//this lets us console.log in our contract
+import "hardhat/console.sol";
+
+contract RandomSVG is ERC721URIStorage {
     uint256 public tokenCounter;
 
     //svg params
@@ -22,26 +21,10 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
     string[] public pathCommands;
     string[] public colors;
 
-    mapping(bytes32 => address) public requestIdToSender;
-    mapping(bytes32 => uint256) public requestIdToTokenId;
-    mapping(uint256 => uint256) public tokenIdToRandomNumber;
-
-    event requestedRandomSVG(bytes32 indexed requestId, uint256 indexed tokenId);
-    event CreatedUnfinishedSVG(uint256 indexed tokenId, uint256 randomNumber);
+    event NewNFTMinted(address indexed sender, uint256 indexed tokenId, uint256 indexed rand);
     event CreatedRandomSVG(uint256 indexed tokenId, string tokenURI);
 
-    constructor(
-        address _VRFCoordinator,
-        address _LinkToken,
-        bytes32 _keyHash,
-        uint256 _fee
-    )
-        VRFConsumerBase(_VRFCoordinator, _LinkToken)
-        ERC721("RandomSVG", "rsNFT")
-    {
-        //for random number via chainlink VRF
-        fee = _fee;
-        keyHash = _keyHash;
+    constructor() ERC721("RandomSVG", "rsNFT") {
         tokenCounter = 0;
 
         //svg params
@@ -52,57 +35,37 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
         colors = ["red", "blue", "green", "yellow", "black", "white"];
     }
 
-    function create() public returns (bytes32 requestId) {
-        //get a random number using chainlink VRF: https://docs.chain.link/docs/get-a-random-number/
-        //by returning requestId in function arg, same as initializing requestId variable
-        //requestRandomness is part of VRFConsumerBase contract -- makes initial request for random number
-        //our contract needs to be funded with link to call this function
-        requestId = requestRandomness(keyHash, fee);
-        requestIdToSender[requestId] = msg.sender; //mapping
+    function create() public {
         uint256 tokenId = tokenCounter;
-        requestIdToTokenId[requestId] = tokenId; //mapping
         tokenCounter = tokenCounter + 1;
-        emit requestedRandomSVG(requestId, tokenId);
-        
-        //still need to...
-        //use that random number to generate SVG code
-        //base64 encode the SVG code
-        //get the tokenURI and mint the nft
+        _safeMint(msg.sender, tokenId);
+        console.log(
+            "An NFT w/ ID %s has been minted to %s",
+            tokenId,
+            msg.sender
+        );
+        uint256 randomNumber = random(
+            string(abi.encodePacked(block.difficulty, block.timestamp, Strings.toString(tokenId)))
+        );
+        emit NewNFTMinted(msg.sender, tokenId, randomNumber);
     }
 
-    //internal b/c only VRF coordinator is calling it
-    //get random number back with this function after requesting it w/ requestRandomness() ???
-    //AKA random number is returned to this function
-    function fulfillRandomness(bytes32 requestId, uint256 randomNumber)
-        internal
-        override
-    {
-        address nftOwner = requestIdToSender[requestId];
-        uint256 tokenId = requestIdToTokenId[requestId];
-        _safeMint(nftOwner, tokenId);
-        tokenIdToRandomNumber[tokenId] = randomNumber; //mapping
-        emit CreatedUnfinishedSVG(tokenId, randomNumber);
+    function random(string memory input) internal pure returns (uint256) {
+        return uint256(keccak256(abi.encodePacked(input)));
     }
+    
 
     //finishing minting a specific tokenId
-    function finishMint(uint256 _tokenId) public {
+    function finishMint(uint256 _tokenId, uint256 _randomNumber) public {
         //check to see if it's been minted and a random number is returned
         require(
             bytes(tokenURI(_tokenId)).length <= 0,
             "The tokenURI is already all set for this tokenId"
         );
-        require(
-            tokenCounter > _tokenId, 
-            "the tokenId has not been minted yet"
-        );
-        require(
-            tokenIdToRandomNumber[_tokenId] > 0,
-            "You need to wait for the Chainlink VRF to generate a random number"
-        );
+        require(tokenCounter > _tokenId, "the tokenId has not been minted yet");
 
         //generate random svg code
-        uint256 randomNumber = tokenIdToRandomNumber[_tokenId];
-        string memory svg = generateSVG(randomNumber);
+        string memory svg = generateSVG(_randomNumber);
 
         //turn it into image URI
         string memory imageURI = svgToImageURI(svg);
@@ -113,7 +76,7 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
         emit CreatedRandomSVG(_tokenId, tokenUri);
     }
 
-    //see desiredSVG.svg for what the final svg should look like 
+    //see desiredSVG.svg for what the final svg should look like
     function generateSVG(uint256 _randomNumber)
         public
         view
@@ -139,13 +102,18 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
             string memory pathSVG = generatePath(newRNG);
             finalSVG = string(abi.encodePacked(finalSVG, pathSVG));
         }
-        finalSVG = string(abi.encodePacked(finalSVG, '</svg>'));
+        finalSVG = string(abi.encodePacked(finalSVG, "</svg>"));
     }
 
-    function generatePath(uint256 _randomNumber) public view returns (string memory pathSvg) {
-        uint256 numberOfPathCommands = (_randomNumber % maxNumberOfPathCommands) + 1; //+1 so there's always at least 1 path;
-        pathSvg = "<path d='";
-        for(uint i; i < numberOfPathCommands; i++) {
+    function generatePath(uint256 _randomNumber)
+        public
+        view
+        returns (string memory pathSvg)
+    {
+        uint256 numberOfPathCommands = (_randomNumber %
+            maxNumberOfPathCommands) + 1; //+1 so there's always at least 1 path;
+        pathSvg = "<path stroke-width='8' d='";
+        for (uint256 i; i < numberOfPathCommands; i++) {
             //use a different number for each path command
             //basically getting a random number from the random number
             uint256 newRNG = uint256(
@@ -155,18 +123,37 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
             pathSvg = string(abi.encodePacked(pathSvg, pathCommand));
         }
         string memory color = colors[_randomNumber % colors.length];
-        pathSvg = string(abi.encodePacked(pathSvg, "' fill='transparent' stroke='", color, "'/>"));
+        pathSvg = string(
+            abi.encodePacked(
+                pathSvg,
+                "' fill='transparent' stroke='",
+                color,
+                "'/>"
+            )
+        );
     }
 
-    function generatePathCommand(uint256 _randomNumber) public view returns (string memory pathCommand) {
+    function generatePathCommand(uint256 _randomNumber)
+        public
+        view
+        returns (string memory pathCommand)
+    {
         pathCommand = pathCommands[_randomNumber % pathCommands.length];
         uint256 parameterOne = uint256(
-                keccak256(abi.encodePacked(_randomNumber, size * 2))
-            ) % size; //modding by the size b/c we don't want parameters to be bigger than the size 
+            keccak256(abi.encodePacked(_randomNumber, size * 2))
+        ) % size; //modding by the size b/c we don't want parameters to be bigger than the size
         uint256 parameterTwo = uint256(
-                keccak256(abi.encodePacked(_randomNumber, size * 3))
-            ) % size; //modding by the size b/c we don't want parameters to be bigger than the size 
-        pathCommand = string(abi.encodePacked(pathCommand, uint2str(parameterOne), " ", uint2str(parameterTwo), " "));
+            keccak256(abi.encodePacked(_randomNumber, size * 3))
+        ) % size; //modding by the size b/c we don't want parameters to be bigger than the size
+        pathCommand = string(
+            abi.encodePacked(
+                pathCommand,
+                uint2str(parameterOne),
+                " ",
+                uint2str(parameterTwo),
+                " "
+            )
+        );
     }
 
     //function for converting uint256 => string
@@ -237,5 +224,4 @@ contract RandomSVG is ERC721URIStorage, VRFConsumerBase {
         );
         return finalTokenUri;
     }
-
 }
