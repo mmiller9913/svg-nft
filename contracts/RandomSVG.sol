@@ -21,48 +21,36 @@ contract RandomSVG is ERC721URIStorage {
     string[] public pathCommands;
     string[] public colors;
 
-    event NewNFTMinted(address indexed sender, uint256 indexed tokenId, uint256 indexed rand);
-    event CreatedRandomSVG(uint256 indexed tokenId, string tokenURI);
+    event NewNFTMinted(
+        address indexed sender,
+        uint256 indexed tokenId,
+        uint256 indexed rand
+    );
+    // event CreatedRandomSVG(uint256 indexed tokenId, string indexed tokenURI);
 
-    constructor() ERC721("RandomSVG", "rsNFT") {
+    constructor() ERC721("Blurred Lines", "blNFT") {
         tokenCounter = 0;
 
         //svg params
         maxNumberOfPaths = 10;
-        maxNumberOfPathCommands = 5;
+        maxNumberOfPathCommands = 10;
         size = 500;
         pathCommands = ["M", "L"];
-        colors = ["red", "blue", "green", "yellow", "black", "white"];
-    }
-
-    function create() public {
-        uint256 tokenId = tokenCounter;
-        tokenCounter = tokenCounter + 1;
-        _safeMint(msg.sender, tokenId);
-        console.log(
-            "An NFT w/ ID %s has been minted to %s",
-            tokenId,
-            msg.sender
-        );
-        uint256 randomNumber = random(
-            string(abi.encodePacked(block.difficulty, block.timestamp, Strings.toString(tokenId)))
-        );
-        emit NewNFTMinted(msg.sender, tokenId, randomNumber);
+        colors = ["red", "blue", "green", "yellow", "black", "purple", "orange"];
     }
 
     function random(string memory input) internal pure returns (uint256) {
         return uint256(keccak256(abi.encodePacked(input)));
     }
-    
 
-    //finishing minting a specific tokenId
-    function finishMint(uint256 _tokenId, uint256 _randomNumber) public {
-        //check to see if it's been minted and a random number is returned
-        require(
-            bytes(tokenURI(_tokenId)).length <= 0,
-            "The tokenURI is already all set for this tokenId"
-        );
-        require(tokenCounter > _tokenId, "the tokenId has not been minted yet");
+    //finish minting a specific tokenId
+    function finishMint(uint256 _randomNumber) public view returns (string memory) {
+        //check to see if it's been minted
+        // require(
+        //     bytes(tokenURI(_tokenId)).length <= 0,
+        //     "The tokenURI is already all set for this tokenId"
+        // );
+        // require(tokenCounter > _tokenId, "the tokenId has not been minted yet");
 
         //generate random svg code
         string memory svg = generateSVG(_randomNumber);
@@ -72,8 +60,8 @@ contract RandomSVG is ERC721URIStorage {
 
         //use image URI to format into a token URI
         string memory tokenUri = formatTokenURI(imageURI);
-        _setTokenURI(_tokenId, tokenUri);
-        emit CreatedRandomSVG(_tokenId, tokenUri);
+        return tokenUri;
+        // emit CreatedRandomSVG(_tokenId, tokenUri);
     }
 
     //see desiredSVG.svg for what the final svg should look like
@@ -110,8 +98,9 @@ contract RandomSVG is ERC721URIStorage {
         view
         returns (string memory pathSvg)
     {
+
         uint256 numberOfPathCommands = (_randomNumber %
-            maxNumberOfPathCommands) + 1; //+1 so there's always at least 1 path;
+            maxNumberOfPathCommands) + 3; //+3 so there's always at least 3 path commands
         pathSvg = "<path stroke-width='8' d='";
         for (uint256 i; i < numberOfPathCommands; i++) {
             //use a different number for each path command
@@ -119,7 +108,7 @@ contract RandomSVG is ERC721URIStorage {
             uint256 newRNG = uint256(
                 keccak256(abi.encodePacked(_randomNumber, size + i))
             );
-            string memory pathCommand = generatePathCommand(newRNG);
+            string memory pathCommand = generatePathCommand(newRNG, i);
             pathSvg = string(abi.encodePacked(pathSvg, pathCommand));
         }
         string memory color = colors[_randomNumber % colors.length];
@@ -133,12 +122,22 @@ contract RandomSVG is ERC721URIStorage {
         );
     }
 
-    function generatePathCommand(uint256 _randomNumber)
+    function generatePathCommand(uint256 _randomNumber, uint256 x)
         public
         view
         returns (string memory pathCommand)
-    {
-        pathCommand = pathCommands[_randomNumber % pathCommands.length];
+    {   
+        //the first path command must be M
+        //the seconds must be L
+        //after that, can be either M or L
+        if(x == 0) {
+            pathCommand = 'M';
+        }
+        if(x == 1) {
+            pathCommand = 'L';
+        } else {
+            pathCommand = pathCommands[_randomNumber % pathCommands.length];
+        }
         uint256 parameterOne = uint256(
             keccak256(abi.encodePacked(_randomNumber, size * 2))
         ) % size; //modding by the size b/c we don't want parameters to be bigger than the size
@@ -187,7 +186,7 @@ contract RandomSVG is ERC721URIStorage {
 
     function svgToImageURI(string memory _svg)
         public
-        pure
+        view
         returns (string memory)
     {
         string memory baseURL = "data:image/svg+xml;base64,";
@@ -197,6 +196,10 @@ contract RandomSVG is ERC721URIStorage {
         string memory imageURI = string(
             abi.encodePacked(baseURL, svgBase64Encoded)
         );
+        
+        console.log("\n--------------------");
+        console.log(imageURI);
+        console.log("--------------------\n");
         return imageURI;
     }
 
@@ -209,7 +212,7 @@ contract RandomSVG is ERC721URIStorage {
             bytes(
                 string(
                     abi.encodePacked(
-                        '{"name": "SVG NFT", ',
+                        '{"name": "Blurred Lines", ',
                         '"description": "An NFT based on SVG!", ',
                         '"attributes": "", ',
                         '"image": "',
@@ -224,4 +227,48 @@ contract RandomSVG is ERC721URIStorage {
         );
         return finalTokenUri;
     }
+
+    function create() public {
+        uint256 tokenId = tokenCounter;
+        tokenCounter = tokenCounter + 1;
+        uint256 randomNumber = random(
+            string(
+                abi.encodePacked(
+                    block.difficulty,
+                    block.timestamp,
+                    Strings.toString(tokenId)
+                )
+            )
+        );
+        console.log(randomNumber);
+        string memory finalTokenUri = finishMint(randomNumber);
+
+        // console.log("\n--------------------");
+        // console.log(finalTokenUri);
+        // console.log("--------------------\n");
+
+        _safeMint(msg.sender, tokenId);
+        _setTokenURI(tokenId, finalTokenUri);
+        
+        console.log(
+            "An NFT w/ ID %s has been minted to %s",
+            tokenId,
+            msg.sender
+        );
+
+        emit NewNFTMinted(msg.sender, tokenId, randomNumber);
+    }
+
+     function mintNFTs(uint256 _count) public {
+        // require that caller has requested to mint > 0 NFTs
+        require(
+            _count > 0,
+            "Cannot mint specified number of NFTs."
+        );
+
+        for (uint256 i = 0; i < _count; i++) {
+            create();
+        }
+    }
+
 }

@@ -1,6 +1,9 @@
 let { networkConfig } = require('../helper-hardhat-config')
 
-//note: gas limits are in wei
+//npx hardhat deploy
+// -- deploys to local test blockchain (similar to running npx hardhat run scripts/deploy.js --network localhost, see wavePortal project)
+//npx hardhat deploy --network rinkeby
+//  -- deploys to rinkeby
 
 module.exports = async ({
     getNamedAccounts,
@@ -21,7 +24,7 @@ module.exports = async ({
 
     //etherscan verification
     const networkName = networkConfig[chainId]['name'];
-    log(`Verify this contract on ethercan with: \n npx hardhat verify --network ${networkName} ${RandomSVG.address}`)
+    log(`Verify this contract on etherscan with: \n npx hardhat verify --network ${networkName} ${RandomSVG.address}`)
 
     const accounts = await hre.ethers.getSigners();
     const signer = accounts[0];
@@ -39,14 +42,15 @@ module.exports = async ({
     // await finish_tx.wait(1);
     // log(`You can view the tokenURI here: ${await randomSVG.tokenURI(tokenId)}`);
 
-    let creation_txn = await randomSVG.create({ gasLimit: 300000 });
+    let creation_txn = await randomSVG.create();
     let receipt = await creation_txn.wait();
     let tokenId = receipt.events[1].topics[2];
     let randomNumber = receipt.events[1].topics[3];
+    // console.log(receipt.events.map(r => r.event));
 
-    log('Time to finish the mint...');
-    let finish_tx = await randomSVG.finishMint(tokenId, randomNumber, { gasLimit: 2000000 });
-    await finish_tx.wait(1);
+    // log('Time to finish the mint...');
+    // let finish_tx = await randomSVG.finishMint(tokenId, randomNumber, { gasLimit: 2000000 });
+    // await finish_tx.wait(1);
     log(`You can view the tokenURI here: ${await randomSVG.tokenURI(tokenId)}`);
 
 }
