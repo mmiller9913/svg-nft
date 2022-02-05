@@ -173,15 +173,17 @@ function App() {
   }
 
   const renderRaribleButton = () => {
-    return (
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          window.location.href = RARIBLE_LINK;
-        }}
-        className="rarible-button"
-      >🌊 Check out the collection on Rarible 🌊</button>
-    )
+    if (currentAccount && network === "Rinkeby") {
+      return (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            window.location.href = RARIBLE_LINK;
+          }}
+          className="rarible-button"
+        >🌊 Check out the collection on Rarible 🌊</button>
+      )
+    }
   }
 
   // USE EFFECTS
