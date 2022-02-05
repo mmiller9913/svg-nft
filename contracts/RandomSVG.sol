@@ -32,11 +32,11 @@ contract RandomSVG is ERC721URIStorage {
         tokenCounter = 0;
 
         //svg params
-        maxNumberOfPaths = 10;
-        maxNumberOfPathCommands = 10;
+        maxNumberOfPaths = 4;
+        maxNumberOfPathCommands = 6;
         size = 500;
         pathCommands = ["M", "L"];
-        colors = ["red", "blue", "green", "yellow", "black", "purple", "orange"];
+        colors = ["red", "blue", "green", "yellow", "black", "aqua", "khaki", "purple", "orange"];
     }
 
     function random(string memory input) internal pure returns (uint256) {
@@ -130,12 +130,12 @@ contract RandomSVG is ERC721URIStorage {
         //the first path command must be M
         //the seconds must be L
         //after that, can be either M or L
-        if(x == 0) {
+        if(x < 1) {
             pathCommand = 'M';
         }
-        if(x == 1) {
+        if(x > 0 && x < 2) {
             pathCommand = 'L';
-        } else {
+        } else if (x > 1) {
             pathCommand = pathCommands[_randomNumber % pathCommands.length];
         }
         uint256 parameterOne = uint256(

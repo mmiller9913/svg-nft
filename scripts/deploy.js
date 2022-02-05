@@ -27,10 +27,9 @@ async function main() {
     // creation_txn = await randomSVG.create();
     // await creation_txn.wait();
 
-    creation_txn = await randomSVG.mintNFTs(5);
+    console.log('Minting NFTs...')
+    creation_txn = await randomSVG.mintNFTs(10);
     await creation_txn.wait();
-
-
 }
 
 
@@ -46,3 +45,4 @@ main()
 //this works when running  npx hardhat run scripts/deploy.js
 //why aren't consoles in sol file outputting? -- b/c hardhat config had rinkeby as default network 
 //need to get to work on rinkeby -- sort of working, but seems to be a bug where no lines are being drawn sometimes
+    //figured this out, it had to do with path commands
