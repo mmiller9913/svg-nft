@@ -20,6 +20,8 @@ import o from './assets/14.png';
 import p from './assets/15.png';
 import q from './assets/16.png';
 import r from './assets/17.png';
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 // import Me from './assets/Me.jpg';
 
 const contractAddress = '0xe1e0fF469690d7c5798EA98f83f6AA2afdF54891';
@@ -39,6 +41,15 @@ function App() {
 
       if (!ethereum) {
         console.log("Make sure you have Metamask installed!");
+        toast.warn("Make sure you have MetaMask installed", {
+          position: "top-left",
+          autoClose: 1000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
         return;
       } else {
         console.log("We have the ethereum object", ethereum);
@@ -58,6 +69,15 @@ function App() {
           const account = accounts[0];
           console.log('Found an authorized account:', account);
           setCurrentAccount(account);
+          toast.success("🦄 Wallet is Connected", {
+            position: "top-left",
+            autoClose: 1000,
+            hideProgressBar: true,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+          });
         } else {
           console.log('No authorized account found');
         }
@@ -95,8 +115,26 @@ function App() {
         console.log("Going to pop wallet now to pay gas...")
         let nftTxn = await nftContract.mintNFTs(1, { gasLimit: 5000000 });
         console.log("Minting... please wait")
+        toast.info("Minting NFT...", {
+          position: "top-left",
+          autoClose: 6050,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
         await nftTxn.wait();
         console.log('NFT minted');
+        toast.success("NFT Minted!", {
+          position: "top-left",
+          autoClose: 2000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
         setIsMintingNFT(false);
       } else {
         console.log('Ethereum object does not exist');
@@ -227,8 +265,18 @@ function App() {
           rel="noreferrer"
         ><img alt="My avatar" className="my-avatar" src={Me} /><p>Built By Matt</p></a>
       </div> */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
-
   );
 }
 export default App;
